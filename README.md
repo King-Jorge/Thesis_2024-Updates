@@ -4,6 +4,7 @@ This repository contains all project files and updates.
 # File Update 4
 In this file, Problem 2 (Travel restrictions only model) and Problem 3 (Mixed policy model) are presented. 
 We applied the PMP to these problems and proved that the optimal solution to the models are bang-bang. One difficulty encountered here is determing the switching times of the controls.
+
 We observe some nonlinearity in the system, hence analytic solutions becomes difficult. On the other hand, we have litte information on the adjoint varibles which form the equation of the switching function.
 Some researchers tackles this kind of problem by suggesting some numerical schemes [Switching Time Compuation (STC), Switching-Time-Variation Method (SVTM) and Time Optimal Switching (TOS)] that can solve for the switching times. 
 However, these methods are simply applied to linear systems, hence applying to nonlinear systems requires a lot of modications (linearization and parameterization) and assumptions, another work on it own.
