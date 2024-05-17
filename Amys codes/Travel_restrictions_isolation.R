@@ -24,11 +24,13 @@ rho<-0
 
 # start time for community isolation
 tstart1<-0
-
+# in case we wanted to do two switches
+toff1 <- 1000 # currently set to not turn-off
+# an example of another 
+ton <- toff1+5
 # start time for restrictions on travellers
 tstart2<-10
-toff1 <- 1000
-ton <- toff1+5
+
 
 # community isolation function
 u1fun<-function(t){
@@ -56,7 +58,9 @@ u2fun<-function(t){
 # This is designed to trigger termination of the simulation when I1>0.5
 rootfun <- function(t, y, parameters){
   I1 = y[2]
-  # Much higher Imin with importations
+  # However, with importations, it doesn't make sense to have this as
+  # the endpoint of the simulation, so instead I just set Imin = 0 and have
+  # the simulation end at T=100.
   y1 = 0 - I1 
   return(y1)
 }
@@ -74,7 +78,6 @@ SI<-function(t, y, parameters){
   if(C1 > C1max){
     u1 = 0
   }
-  
   if(C2 > C2max){
     u2 = 0
   }
