@@ -169,7 +169,7 @@ J.circ = ggplot()+
   geom_ribbon(data=out.circ,aes(x=time,ymin = 0, ymax = u*(max(J)/max(I1))), fill = cols[4], alpha = 0.2)+
   geom_ribbon(data=out.circ.2,aes(x=time,ymin = 0, ymax = u*(max(J)/max(I1))), fill = cols[6], alpha = 0.2)+
   geom_line(data=out.circ, aes(x = time, y = J),color = cols[4], size = 2)+
-  geom_line(data=out.circ.2, aes(x = time, y = J),color = cols[6], size = 2)+ylab("Cumulative cases")+ggtitle("Circuit breaker 1 & 2 equivlance")+theme_classic()
+  geom_line(data=out.circ.2, aes(x = time, y = J),color = cols[6], size = 2)+ylab("Cumulative cases")+ggtitle("Circuit breaker 1 & 2 equivalence")+theme_classic()
 
 g1=g.elim+g.supp
 g2=g.circ+g.circ.2
