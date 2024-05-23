@@ -175,4 +175,4 @@ g1=g.elim+g.supp
 g2=g.circ+g.circ.2
 fig = g1/g2/J.circ+
   plot_annotation(tag_levels = 'A')
-ggsave("~/Desktop/Work/Students/MSc/Adu-Boahen/Thesis_2024-Updates/Amys codes/figures/Isolation_only_no_importations.pdf", width = 20, height = 15, units = "cm")
+ggsave("~/Desktop/Work/Students/MSc/Adu-Boahen/Thesis_2024-Updates/Amys codes/figures/Isolation_only_no_importations.png", width = 20, height = 15, units = "cm")
