@@ -1,15 +1,17 @@
 require(deSolve)
 # max daily rate of community member isolation
 u1max <-0.3
-u1max <- 1
-# max daily rate of traveller isolation
+u1max <- 0.9
+
+# max daily rate of traveler isolation
 u2max <- 10
 
 # constraint on community member isolation
-C1max <- 1200
-C1max <- 200
+C1max <- 600
+
 # constraint on traveller isolation
-C2max <- 30
+C2max <- 100
+
 # transmission rate
 beta<-.0002
 # importation rate
@@ -28,8 +30,9 @@ tstart1<-0
 toff1 <- 1000 # currently set to not turn-off
 # an example of another 
 ton <- toff1+5
+
 # start time for restrictions on travellers
-tstart2<-10
+tstart2<-0
 
 
 # community isolation function
@@ -61,7 +64,7 @@ rootfun <- function(t, y, parameters){
   # However, with importations, it doesn't make sense to have this as
   # the endpoint of the simulation, so instead I just set Imin = 0 and have
   # the simulation end at T=100.
-  y1 = 0 - I1 
+  y1 = 1 - I1 
   return(y1)
 }
 
