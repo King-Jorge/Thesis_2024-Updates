@@ -79,7 +79,7 @@ stratMx = rbind(stratMx, data.frame(u1 = u1, u2 = u2, outcome = outcome, J=J, T 
 
 g1=ggplot(stratMx, aes(u1, u2, fill= outcome)) +
   geom_tile()+xlab("community daily max, u1max")+ylab("traveler daily max, u2max")+
-  ggtitle("Low importations")+
+  ggtitle("Low importations: strategy")+
   scale_fill_manual(values=cols, breaks = c("elimination", "suppression", "supp/circ", "circ/supp", "circuit breaker"))+theme_classic()+theme(legend.title=element_blank())
 
 theta <- 2
@@ -103,27 +103,36 @@ for(i in seq(1,length(u1vec))){
     } else if(max(out$I1)>10 & max(out$C1)>=C1max & max(out$C2)>=C2max& max(out$time)<T){
       outcome = "circuit breaker"
     }
-
-    stratMx2 = rbind(stratMx2, data.frame(u1 = u1, u2 = u2, outcome = outcome))
+    J = cumsum(beta*out$S*(out$I1+c*out$I2)*diff(c(0,out$time)))
+    stratMx2 = rbind(stratMx2, data.frame(u1 = u1, u2 = u2, outcome = outcome, J=J, T = max(out$time)))
   }}
 
 g2=ggplot(stratMx2, aes(u1, u2, fill= outcome)) +
   geom_tile()+xlab("community daily max, u1max")+ylab("traveler daily max, u2max")+
-  ggtitle("High importations")+
+  ggtitle("High importations: strategy")+
   scale_fill_manual(values=cols, breaks = c("elimination", "suppression", "supp/circ", "circ/supp", "circuit breaker"))+theme_classic()+theme(legend.title=element_blank())
-
-g3=ggarrange(g1,g2,common.legend = TRUE, legend="right")
 
 g4=ggplot(stratMx, aes(u1, u2, fill= T)) +
   geom_tile()+xlab("community daily max, u1max")+ylab("traveler daily max, u2max")+
-  ggtitle("Duration of outbreak (low importations)")+
-  scale_fill_gradient(low = cols[7], high = "black")+theme_classic()+theme(legend.title=element_blank())
+  ggtitle("Low importations: duration of outbreak")+
+  scale_fill_gradient(low = cols[3], high = "black")+theme_classic()+theme(legend.title=element_blank())
 
 g5=ggplot(stratMx, aes(u1, u2, fill= J)) +
   geom_tile()+xlab("community daily max, u1max")+ylab("traveler daily max, u2max")+
-  ggtitle("New cases (low importations)")+
-  scale_fill_gradient(low = cols[9], high = "black")+theme_classic()+theme(legend.title=element_blank())
+  ggtitle("Low importations: new cases")+
+  scale_fill_gradient(low = cols[2], high = "black")+theme_classic()+theme(legend.title=element_blank())
 
-g7=g3/(g4+g5)+plot_annotation(tag_levels = 'A')+plot_layout(heights = c(1.5, 1))
+g6=ggplot(stratMx2, aes(u1, u2, fill= T)) +
+  geom_tile()+xlab("community daily max, u1max")+ylab("traveler daily max, u2max")+
+  ggtitle("High importations: duration of outbreak")+
+  scale_fill_gradient(low = cols[3], high = "black")+theme_classic()+theme(legend.title=element_blank())
 
-ggsave("~/Desktop/Work/Students/MSc/Adu-Boahen/Thesis_2024-Updates/Amys codes/figures/Heat_map.png", width = 30, height = 20, units = "cm")
+g7=ggplot(stratMx2, aes(u1, u2, fill= J)) +
+  geom_tile()+xlab("community daily max, u1max")+ylab("traveler daily max, u2max")+
+  ggtitle("High importations: new cases")+
+  scale_fill_gradient(low = cols[2], high = "black")+theme_classic()+theme(legend.title=element_blank())
+
+
+g8=(g1+g2)/(g4+g6)/(g5+g7)+plot_annotation(tag_levels = 'A')
+
+ggsave("~/Desktop/Work/Students/MSc/Adu-Boahen/Thesis_2024-Updates/Amys codes/figures/Heat_map.png", width = 25, height = 30, units = "cm")
