@@ -2,7 +2,7 @@ require(deSolve)
 require(ggplot2)
 require(patchwork)
 require(ggpubr)
-cols <- c("#D55E00","#E69F00","#F0E442","#66CC99","#009E73","white", "#CC79A7")
+cols <- c("#D55E00","#E69F00","#F0E442","#66CC99","#009E73","white", "#CC79A7","#999999","#56B4E9")
 
 ##### Parameters
 # constraint on community member isolation
@@ -78,7 +78,7 @@ stratMx = rbind(stratMx, data.frame(u1 = u1, u2 = u2, outcome = outcome, J=J, T 
 }}
 
 g1=ggplot(stratMx, aes(u1, u2, fill= outcome)) +
-  geom_tile()+xlab("community daily max")+ylab("traveler daily max")+
+  geom_tile()+xlab("community daily max, u1max")+ylab("traveler daily max, u2max")+
   ggtitle("Low importations")+
   scale_fill_manual(values=cols, breaks = c("elimination", "suppression", "supp/circ", "circ/supp", "circuit breaker"))+theme_classic()+theme(legend.title=element_blank())
 
@@ -108,10 +108,22 @@ for(i in seq(1,length(u1vec))){
   }}
 
 g2=ggplot(stratMx2, aes(u1, u2, fill= outcome)) +
-  geom_tile()+xlab("community daily max")+ylab("traveler daily max")+
+  geom_tile()+xlab("community daily max, u1max")+ylab("traveler daily max, u2max")+
   ggtitle("High importations")+
   scale_fill_manual(values=cols, breaks = c("elimination", "suppression", "supp/circ", "circ/supp", "circuit breaker"))+theme_classic()+theme(legend.title=element_blank())
 
-g3=ggarrange(g1,g2,common.legend = TRUE, legend="bottom")
+g3=ggarrange(g1,g2,common.legend = TRUE, legend="right")
 
-ggsave("~/Desktop/Work/Students/MSc/Adu-Boahen/Thesis_2024-Updates/Amys codes/figures/Heat_map.png", width = 15, height = 10, units = "cm")
+g4=ggplot(stratMx, aes(u1, u2, fill= T)) +
+  geom_tile()+xlab("community daily max, u1max")+ylab("traveler daily max, u2max")+
+  ggtitle("Duration of outbreak (low importations)")+
+  scale_fill_gradient(low = cols[7], high = "black")+theme_classic()+theme(legend.title=element_blank())
+
+g5=ggplot(stratMx, aes(u1, u2, fill= J)) +
+  geom_tile()+xlab("community daily max, u1max")+ylab("traveler daily max, u2max")+
+  ggtitle("New cases (low importations)")+
+  scale_fill_gradient(low = cols[9], high = "black")+theme_classic()+theme(legend.title=element_blank())
+
+g7=g3/(g4+g5)+plot_annotation(tag_levels = 'A')+plot_layout(heights = c(1.5, 1))
+
+ggsave("~/Desktop/Work/Students/MSc/Adu-Boahen/Thesis_2024-Updates/Amys codes/figures/Heat_map.png", width = 30, height = 20, units = "cm")
