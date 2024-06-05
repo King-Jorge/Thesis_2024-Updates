@@ -73,7 +73,8 @@ if(max(out$I1)<=10 & max(out$time)<T & max(out$C1)<C1max & max(out$C2)<C2max){
   outcome = "circuit breaker"
   }
 
-stratMx = rbind(stratMx, data.frame(u1 = u1, u2 = u2, outcome = outcome))
+J = cumsum(beta*out$S*(out$I1+c*out$I2)*diff(c(0,out$time)))
+stratMx = rbind(stratMx, data.frame(u1 = u1, u2 = u2, outcome = outcome, J=J, T = max(out$time)))
 }}
 
 g1=ggplot(stratMx, aes(u1, u2, fill= outcome)) +
