@@ -1,0 +1,140 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+require(deSolve)
+require(ggplot2)
+require(patchwork)
+library(cowplot)
+
+cols <- c("#999999", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7", "#66CC99")
+
+### The aim of this code is to make a figure that illustrates
+### the Travel restrictions-only strategy
+### in terms of the public health terminology that I defined
+#### elimination
+
+
+
+##### Parameters
+# max daily rate of traveler isolation
+u2max <- 3
+
+# constraint on traveller isolation
+C2max <- 300 
+
+# transmission rate
+beta<- 0.0002
+
+# importation rate
+theta <- 2
+
+mu <- 0.334
+# relative transmissibility of travellers
+c <- 1
+
+T <- 70
+# daily vaccination rate
+rho <- 0
+
+
+# in case we wanted to do two switches
+toff2 <- 1000 # currently set to not turn-off
+# start time for restrictions on travellers
+tstart2 <- 0
+
+
+# travel restrictions function
+u2fun<-function(t){
+  u2 = u2max
+  if(t < tstart2){
+  u2 = 0}
+  if( t > toff2 & t < (toff2+10)){
+    u2 = 0
+  }
+  return(u2)
+}
+
+
+# This is designed to trigger termination of the simulation when I1 < 1
+rootfun <- function(t, y, parameters){
+  I1 = y[2]
+  y1 = 1 - I1 
+  return(y1)
+}
+
+
+SI<-function(t, y, parameters){
+  S = y[1]
+  I1 = y[2]
+  I2 = y[3]
+  C2 = y[4]
+  iso = y[5]
+  u2 = u2fun(t)
+  
+
+  if(C2 > C2max){
+    u2 = 0
+  }
+  
+  dS = - beta*S*(I1 + c*I2) - rho*S
+  dI1 = beta*S*(I1 + c*I2) - mu*I1
+  dI2 = theta - 2*mu*I2 - u2*I2
+  dC2 = u2*I2
+  diso = u2*I2 - 2*mu*iso
+  return(list(c(dS,dI1,dI2,dC2,diso)))
+}
+
+```
+
+
+
+
+```{r}
+
+### ELIMINATION
+#I2 is set to 10
+
+out1 <- ode(y = c(S = 5000, I1 = 10, I2 = 10, C2 = 0, iso = 0), parms = NULL, times = seq(0,T,.05), func = SI, events = list(func = NULL, root = TRUE, terminalroot = 1), rootfun=rootfun)
+
+out1<- data.frame(out1)
+
+J1 = cumsum(beta*out1$S*(out1$I1+c*out1$I2)*diff(c(0,out1$time)))
+J.elim <- J1
+
+u = rep(0,length(J1))
+
+u[which(diff(c(out1$C2[1],out1$C2))*diff(c(0,out1$time)) > 0.001)] = max(c(out1$I2,out1$iso))
+
+out.elim <- data.frame(out1,u=u, j = J1)
+
+
+#plot community infections
+g.elim1 = ggplot(out.elim, aes(x = time, y = I1)) + 
+  geom_line(color = cols[7], size = 2)+
+  geom_line(aes(y = 1), color = "blue", linetype = "dashed")+
+  ggtitle(" ")+ylab("Community prevalence") + xlim(0,T)+ theme_classic()
+g.elim1
+
+#Magnified Plot of community prevalence
+g.elim1.1 = ggplot(out.elim, aes(x = time, y = I1)) + 
+  geom_line(color = cols[7], size = 2)+
+  geom_line(aes(y = 1), color = "blue", linetype = "dashed")+
+  ggtitle("Magnified Plot")+ylab("Community prevalence") + xlim(0,T)+ ylim(0,10) + theme_classic()
+g.elim1.1
+
+
+#plot travel cases
+g.elim2 = ggplot(out.elim, aes(x = time, y = I2)) +
+  geom_ribbon(aes(ymin = 0, ymax = u), fill = cols[7], alpha = 0.2)+
+  geom_line(color = cols[7], size = 2)+
+  geom_line(aes(y=iso))+
+  ggtitle("Elimination ")+ylab("Traveller's prevalence") + xlim(0,T) + theme_classic()
+g.elim2
+
+
+
+
+```
