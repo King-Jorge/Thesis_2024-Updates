@@ -49,7 +49,7 @@ SI<-function(t, y, parameters){
   dC2 = u2*I2
   return(list(c(dS,dI1,dI2,dC1,dC2)))
 }
-yinc = .0125
+yinc = .025
 xinc = .025
 stratMx = NULL
 u1vec <- seq(2,0,-xinc)
@@ -69,22 +69,23 @@ for(i in seq(1,length(u1vec))){
     u2 = u2vec[j]
   out <- ode(y = c(S=5000,I1=10,I2=1,C1=0,C2=0), parms = NULL, times = seq(0,T,1), func = SI, events = list(func = NULL, root = TRUE, terminalroot = 1), rootfun=rootfun, method = "radau")
   out<- data.frame(out)
- if(max(out$I1)>10 & max(out$C1)<C1max & max(out$C2)>=C2max & max(out$time)<T){
-  outcome = "mitig/circ"
+ if(max(out$I1)>10 & max(out$C1)<=C1max & max(out$C2)>C2max & max(out$time)<T){
+  outcome = "[mit, circ]"
   max_supp_circ[i] = u2+yinc/2 
-} else if(max(out$I1)>10 & max(out$C1)>=C1max & max(out$C2)<C2max& max(out$time)<T){
-  outcome = "circ/mitig"
+} else if(max(out$I1)>10 & max(out$C1)>C1max & max(out$C2)<=C2max& max(out$time)<T){
+  outcome = "[circ, mit]"
 } else if(max(out$I1)>10 & max(out$C1)<C1max & max(out$C2)<C2max& max(out$time)<T){
-  outcome = "mitigation"
+  outcome = "[mit, mit]"
   max_supp[i] = u2+yinc/2
-} else if(max(out$time)==T){
+} else if(max(out$time)>=T){
   outcome = "no end"
-} else if(max(out$I1)>10 & max(out$C1)>=C1max & max(out$C2)>=C2max& max(out$time)<T){
-  outcome = "circuit breaker"
+  print("no end")
+} else if(max(out$I1)>10 & max(out$C1)>C1max & max(out$C2)>C2max& max(out$time)<T){
+  outcome = "[circ, circ]"
 }
-  else if(max(out$I1)<=10 & max(out$time)<T & max(out$C1)<C1max & max(out$C2)<C2max){
-    outcome = "elimination"
-    max_elim[i] = u2+yinc/2 
+  else if(max(out$I1)<=10 & max(out$time)<T & max(out$C1)<=C1max & max(out$C2)<=C2max){
+    outcome = "[elim, elim]"
+    max_elim[i] = u2+yinc/2
   }
 
 
@@ -100,7 +101,7 @@ g1=ggplot() +
   geom_line(data=elim,aes(x=u1vec+xinc/2,y=max_supp_circ),col="grey")+
   xlab("community daily max, u1max")+ylab("traveler daily max, u2max")+
   ggtitle("Low importations")+
-  scale_fill_manual(values=cols, breaks = c("elimination", "mitigation", "mitig/circ", "circ/mitig", "circuit breaker"))+theme_classic()
+  scale_fill_manual(values=cols, breaks = c("[elim, elim]", "[mit, mit]", "[mit, circ]", "[circ, mit]", "[circ, circ]"))+theme_classic()
 
 theta <- 2
 stratMx2 = NULL
@@ -118,21 +119,21 @@ for(i in seq(1,length(u1vec))){
     u2 = u2vec[j]
     out <- ode(y = c(S=5000,I1=10,I2=1,C1=0,C2=0), parms = NULL, times = seq(0,T,1), func = SI, events = list(func = NULL, root = TRUE, terminalroot = 1), rootfun=rootfun, method = "radau")
     out<- data.frame(out)
-    if(max(out$I1)>10 & max(out$C1)<C1max & max(out$C2)>=C2max & max(out$time)<T){
-      outcome = "mitig/circ"
+    if(max(out$I1)>10 & max(out$C1)<=C1max & max(out$C2)>C2max & max(out$time)<T){
+      outcome = "[mit, circ]"
       max_supp_circ2[i] = u2+yinc/2 
-    } else if(max(out$I1)>10 & max(out$C1)>=C1max & max(out$C2)<C2max& max(out$time)<T){
-      outcome = "circ/mitig"
-    } else if(max(out$I1)>10 & max(out$C1)<C1max & max(out$C2)<C2max& max(out$time)<T){
-      outcome = "mitigation"
+    } else if(max(out$I1)>10 & max(out$C1)>C1max & max(out$C2)<=C2max& max(out$time)<T){
+      outcome = "[circ, mit]"
+    } else if(max(out$I1)>10 & max(out$C1)<=C1max & max(out$C2)<=C2max& max(out$time)<T){
+      outcome = "[mit, mit]"
       max_supp2[i] = u2+yinc/2 
     } else if(max(out$time)==T){
       outcome = "no end"
-    } else if(max(out$I1)>10 & max(out$C1)>=C1max & max(out$C2)>=C2max& max(out$time)<T){
-      outcome = "circuit breaker"
+    } else if(max(out$I1)>10 & max(out$C1)>C1max & max(out$C2)>C2max& max(out$time)<T){
+      outcome = "[circ, circ]"
     }
     else if(max(out$I1)<=10 & max(out$time)<T & max(out$C1)<C1max & max(out$C2)<C2max){
-      outcome = "elimination"
+      outcome = "[elim, elim]"
       max_elim2[i] = u2+yinc/2 
     }
     J = cumsum(beta*out$S*(out$I1+c*out$I2)*diff(c(0,out$time)))
@@ -148,7 +149,7 @@ g2=ggplot() +
   geom_line(data=elim2,aes(x=u1vec+xinc/2,y=max_supp_circ2),col="grey")+
   xlab("community daily max, u1max")+ylab("traveler daily max, u2max")+
   ggtitle("High importations")+
-  scale_fill_manual(values=cols, breaks = c("elimination", "mitigation", "mitig/circ", "circ/mitig", "circuit breaker"))+theme_classic()
+  scale_fill_manual(values=cols, breaks = c("[elim, elim]", "[mit, mit]", "[mit, circ]", "[circ, mit]", "[circ, circ]"))+theme_classic()
 
 g3=ggplot() +
   geom_raster(data = stratMx,aes(x=u1, y=u2, fill=T),hjust = 1, vjust=1)+
