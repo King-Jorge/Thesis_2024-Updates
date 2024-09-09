@@ -59,6 +59,7 @@ u2vec <- seq(3,0,-yinc)
 max_elim = rep(max(u2vec)+yinc,length(u1vec))
 max_supp = max_elim
 max_supp_circ = max_elim
+max_circ_mit = rep(min(u2vec),length(u1vec))
 
 for(i in seq(1,length(u1vec))){
   u1 = u1vec[i]
@@ -82,6 +83,7 @@ for(i in seq(1,length(u1vec))){
   print("no end")
 } else if(max(out$I1)>10 & max(out$C1)>C1max & max(out$C2)>C2max& max(out$time)<T){
   outcome = "[circ, circ]"
+  max_circ_mit[i]=u2+yinc/2
 }
   else if(max(out$I1)<=10 & max(out$time)<T & max(out$C1)<=C1max & max(out$C2)<=C2max){
     outcome = "[elim, elim]"
@@ -96,9 +98,10 @@ stratMx = rbind(stratMx, data.frame(u1 = u1, u2 = u2, strategy = outcome, J=J, T
 elim = data.frame(u1vec, max_elim, max_supp, max_supp_circ)
 g1=ggplot() +
   geom_raster(data = stratMx,aes(x=u1, y=u2, fill= strategy),hjust = 1, vjust=1)+
-  geom_line(data=elim,aes(x=u1vec+xinc/2,y=max_elim),col="white")+
-  geom_line(data=elim,aes(x=u1vec+xinc/2,y=max_supp),col="white")+
-  geom_line(data=elim,aes(x=u1vec+xinc/2,y=max_supp_circ),col="grey")+
+  geom_line(data=elim,aes(x=u1vec+1.5*xinc,y=max_elim-2*yinc),col="white")+
+  geom_line(data=elim,aes(x=u1vec,y=max_supp),col="white")+
+  geom_line(data=elim,aes(x=u1vec,y=max_supp_circ),col="white")+
+  geom_line(data=elim,aes(x=u1vec,y=max_circ_mit),col="white")+
   xlab("community daily max, u1max")+ylab("traveler daily max, u2max")+
   ggtitle("Low importations")+
   scale_fill_manual(values=cols, breaks = c("[elim, elim]", "[mit, mit]", "[mit, circ]", "[circ, mit]", "[circ, circ]"))+theme_classic()
@@ -109,6 +112,7 @@ stratMx2 = NULL
 max_elim2 = rep(max(u2vec)+yinc,length(u1vec))
 max_supp2 = max_elim2
 max_supp_circ2 = max_elim2
+max_circ_mit2 = max_circ_mit
 
 for(i in seq(1,length(u1vec))){
   u1 = u1vec[i]
@@ -131,6 +135,7 @@ for(i in seq(1,length(u1vec))){
       outcome = "no end"
     } else if(max(out$I1)>10 & max(out$C1)>C1max & max(out$C2)>C2max& max(out$time)<T){
       outcome = "[circ, circ]"
+      max_circ_mit2[i] = u2+yinc/2 
     }
     else if(max(out$I1)<=10 & max(out$time)<T & max(out$C1)<C1max & max(out$C2)<C2max){
       outcome = "[elim, elim]"
@@ -144,46 +149,55 @@ elim2 = data.frame(u1vec, max_elim2, max_supp2, max_supp_circ2)
 
 g2=ggplot() +
   geom_raster(data = stratMx2,aes(x=u1, y=u2, fill= strategy),hjust = 1, vjust=1)+
-  geom_line(data=elim2,aes(x=u1vec+xinc/2,y=max_elim2),col="white")+
-  geom_line(data=elim2,aes(x=u1vec+xinc/2,y=max_supp2),col="white")+
-  geom_line(data=elim2,aes(x=u1vec+xinc/2,y=max_supp_circ2),col="grey")+
+  geom_line(data=elim2,aes(x=u1vec+xinc,y=max_elim2),col="white")+
+  geom_line(data=elim2,aes(x=u1vec+xinc,y=max_supp2),col="white")+
+  geom_line(data=elim2,aes(x=u1vec+xinc,y=max_supp_circ2),col="white")+
+  geom_line(data=elim2,aes(x=u1vec+xinc,y=max_circ_mit2),col="white")+
   xlab("community daily max, u1max")+ylab("traveler daily max, u2max")+
   ggtitle("High importations")+
   scale_fill_manual(values=cols, breaks = c("[elim, elim]", "[mit, mit]", "[mit, circ]", "[circ, mit]", "[circ, circ]"))+theme_classic()
 
 g3=ggplot() +
   geom_raster(data = stratMx,aes(x=u1, y=u2, fill=T),hjust = 1, vjust=1)+
-  geom_line(data=elim,aes(x=u1vec+xinc/2,y=max_elim),col="white")+
-  geom_line(data=elim,aes(x=u1vec+xinc/2,y=max_supp),col="white")+
-  geom_line(data=elim,aes(x=u1vec+xinc/2,y=max_supp_circ),col="grey")+
+  geom_line(data=elim,aes(x=u1vec+1.5*xinc,y=max_elim-2*yinc),col="white")+
+  geom_line(data=elim,aes(x=u1vec+xinc,y=max_supp),col="white")+
+  geom_line(data=elim,aes(x=u1vec+xinc,y=max_supp_circ),col="white")+
+  geom_line(data=elim,aes(x=u1vec+xinc,y=max_circ_mit),col="white")+
+  annotate("text", x = c(1.5, 0.5, .4, 0.05, 0.05), y = c(1.5,1.5,.1,1, 2.7), label = c("[elim, elim]","[circ,circ]", "[circ, mit]", "[mit, mit]", "[mit, circ]"),angle = c(0,0,0,90,90), col="black", size = 3)+
   xlab("community daily max, u1max")+ylab("traveler daily max, u2max")+
   ggtitle("Low importations")+scale_fill_gradient(low = cols[3], high = "black")+theme_classic()
 
 
 g4=ggplot() +
   geom_raster(data = stratMx2,aes(x=u1, y=u2, fill=T),hjust = 1, vjust=1)+
-  geom_line(data=elim2,aes(x=u1vec+xinc/2,y=max_elim2),col="white")+
-  geom_line(data=elim2,aes(x=u1vec+xinc/2,y=max_supp2),col="white")+
-  geom_line(data=elim2,aes(x=u1vec+xinc/2,y=max_supp_circ2),col="grey")+
+  geom_line(data=elim2,aes(x=u1vec+xinc,y=max_elim2),col="white")+
+  geom_line(data=elim2,aes(x=u1vec+xinc,y=max_supp2),col="white")+
+  geom_line(data=elim2,aes(x=u1vec+xinc,y=max_supp_circ2),col="white")+
+  geom_line(data=elim2,aes(x=u1vec+xinc,y=max_circ_mit2),col="white")+
   xlab("community daily max, u1max")+ylab("traveler daily max, u2max")+
+  annotate("text", x = c(1.75, 1, 0.05, 0.05), y = c(2,2,0.2, 2), label = c("[elim, elim]","[circ,circ]", "[mit, mit]", "[mit, circ]"),angle = c(0,0,90,90), col=c("black", "white", "black", "black"), size = c(3,3,2,3))+
   ggtitle("High importations")+scale_fill_gradient(low = cols[3], high = "black")+theme_classic()
 
 g5=ggplot() +
   geom_raster(data = stratMx,aes(x=u1, y=u2, fill= J),hjust = 1, vjust=1)+
-  geom_line(data=elim,aes(x=u1vec+xinc/2,y=max_elim),col="white")+
-  geom_line(data=elim,aes(x=u1vec+xinc/2,y=max_supp),col="white")+
-  geom_line(data=elim,aes(x=u1vec+xinc/2,y=max_supp_circ),col="grey")+
+  geom_line(data=elim,aes(x=u1vec+1.5*xinc,y=max_elim-2*yinc),col="white")+
+  geom_line(data=elim,aes(x=u1vec+xinc,y=max_supp),col="white")+
+  geom_line(data=elim,aes(x=u1vec+xinc,y=max_supp_circ),col="white")+
+  geom_line(data=elim,aes(x=u1vec+xinc,y=max_circ_mit),col="white")+
   xlab("community daily max, u1max")+ylab("traveler daily max, u2max")+
+  annotate("text", x = c(1.5, 0.5, .4, 0.05, 0.05), y = c(1.5,1.5,.1,1, 2.7), label = c("[elim, elim]","[circ,circ]", "[circ, mit]", "[mit, mit]", "[mit, circ]"),angle = c(0,0,0,90,90), col=c("black", "white", "white", "white", "white"), size = 3)+
   ggtitle("Low importations")+
   scale_fill_gradient(low = cols[2], high = "black")+theme_classic()
 
 g6=ggplot() +
   geom_raster(data = stratMx2,aes(x=u1, y=u2, fill= J),hjust = 1, vjust=1)+
-  geom_line(data=elim2,aes(x=u1vec+xinc/2,y=max_elim2),col="white")+
-  geom_line(data=elim2,aes(x=u1vec+xinc/2,y=max_supp2),col="white")+
-  geom_line(data=elim2,aes(x=u1vec+xinc/2,y=max_supp_circ2),col="grey")+
+  geom_line(data=elim2,aes(x=u1vec+xinc,y=max_elim2),col="white")+
+  geom_line(data=elim2,aes(x=u1vec+xinc,y=max_supp2),col="white")+
+  geom_line(data=elim2,aes(x=u1vec+xinc,y=max_supp_circ2),col="white")+
+  geom_line(data=elim2,aes(x=u1vec+xinc,y=max_circ_mit2),col="white")+
   xlab("community daily max, u1max")+ylab("traveler daily max, u2max")+
   ggtitle("High importations")+
+  annotate("text", x = c(1.75, 1, 0.05, 0.05), y = c(2,2,0.2, 2), label = c("[elim, elim]","[circ,circ]", "[mit, mit]", "[mit, circ]"),angle = c(0,0,90,90), col=c("black", "white", "white", "white"), size = c(3,3,2,3))+
   scale_fill_gradient(low = cols[2], high = "black")+theme_classic()
 
 g8=(g1+g2)+plot_annotation(tag_levels = 'A')
