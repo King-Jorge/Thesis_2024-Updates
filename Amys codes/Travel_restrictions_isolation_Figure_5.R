@@ -2,7 +2,7 @@ require(deSolve)
 require(ggplot2)
 require(patchwork)
 require(ggpubr)
-cols <- c("#D55E00","#E69F00","#F0E442","#66CC99","#009E73","white", "#CC79A7")
+cols <- c("#D55E00","#E69F00","#F0E442","#66CC99","#009E73","white", "#CC79A7","#999999","#56B4E9")
 
 ##### Parameters
 # constraint on community member isolation
@@ -49,81 +49,163 @@ SI<-function(t, y, parameters){
   dC2 = u2*I2
   return(list(c(dS,dI1,dI2,dC1,dC2)))
 }
+yinc = .025
+xinc = .025
 stratMx = NULL
-u1vec <- seq(2,0,-.025)
-u2vec <- seq(3,0,-.025)
+u1vec <- seq(2,0,-xinc)
+u2vec <- seq(3,0,-yinc)
+
+# Pre-allocation
+max_elim = rep(max(u2vec)+yinc,length(u1vec))
+max_supp = max_elim
+max_supp_circ = max_elim
+max_circ_mit = rep(min(u2vec),length(u1vec))
 
 for(i in seq(1,length(u1vec))){
   u1 = u1vec[i]
+  if(i%%10==0){
+    print(u1)
+  }
   for(j in seq(1,length(u2vec))){
     u2 = u2vec[j]
   out <- ode(y = c(S=5000,I1=10,I2=1,C1=0,C2=0), parms = NULL, times = seq(0,T,1), func = SI, events = list(func = NULL, root = TRUE, terminalroot = 1), rootfun=rootfun, method = "radau")
   out<- data.frame(out)
-if(max(out$I1)<=10 & max(out$time)<T & max(out$C1)<C1max & max(out$C2)<C2max){
-  outcome = "elimination"
-} else if(max(out$I1)>10 & max(out$C1)<C1max & max(out$C2)>=C2max & max(out$time)<T){
-  outcome = "supp/circ"
-} else if(max(out$I1)>10 & max(out$C1)>=C1max & max(out$C2)<C2max& max(out$time)<T){
-  outcome = "circ/supp"
+ if(max(out$I1)>10 & max(out$C1)<=C1max & max(out$C2)>C2max & max(out$time)<T){
+  outcome = "[mit, circ]"
+  max_supp_circ[i] = u2+yinc/2 
+} else if(max(out$I1)>10 & max(out$C1)>C1max & max(out$C2)<=C2max& max(out$time)<T){
+  outcome = "[circ, mit]"
 } else if(max(out$I1)>10 & max(out$C1)<C1max & max(out$C2)<C2max& max(out$time)<T){
-  outcome = "suppression"
-} else if(max(out$time)==T){
+  outcome = "[mit, mit]"
+  max_supp[i] = u2+yinc/2
+} else if(max(out$time)>=T){
   outcome = "no end"
-} else if(max(out$I1)>10 & max(out$C1)>=C1max & max(out$C2)>=C2max& max(out$time)<T){
-  outcome = "circuit breaker"
+  print("no end")
+} else if(max(out$I1)>10 & max(out$C1)>C1max & max(out$C2)>C2max& max(out$time)<T){
+  outcome = "[circ, circ]"
+  max_circ_mit[i]=u2+yinc/2
+}
+  else if(max(out$I1)<=10 & max(out$time)<T & max(out$C1)<=C1max & max(out$C2)<=C2max){
+    outcome = "[elim, elim]"
+    max_elim[i] = u2+yinc/2
   }
 
+
 J = cumsum(beta*out$S*(out$I1+c*out$I2)*diff(c(0,out$time)))
-stratMx = rbind(stratMx, data.frame(u1 = u1, u2 = u2, outcome = outcome, J=J, T = max(out$time)))
+stratMx = rbind(stratMx, data.frame(u1 = u1, u2 = u2, strategy = outcome, J=J, T = max(out$time)))
 }}
 
-g1=ggplot(stratMx, aes(u1, u2, fill= outcome)) +
-  geom_tile()+xlab("community daily max, u1max")+ylab("traveler daily max, u2max")+
+elim = data.frame(u1vec, max_elim, max_supp, max_supp_circ)
+g1=ggplot() +
+  geom_raster(data = stratMx,aes(x=u1, y=u2, fill= strategy),hjust = 1, vjust=1)+
+  geom_line(data=elim,aes(x=u1vec+1.5*xinc,y=max_elim-2*yinc),col="white")+
+  geom_line(data=elim,aes(x=u1vec,y=max_supp),col="white")+
+  geom_line(data=elim,aes(x=u1vec,y=max_supp_circ),col="white")+
+  geom_line(data=elim,aes(x=u1vec,y=max_circ_mit),col="white")+
+  xlab("community daily max, u1max")+ylab("traveler daily max, u2max")+
   ggtitle("Low importations")+
-  scale_fill_manual(values=cols, breaks = c("elimination", "suppression", "supp/circ", "circ/supp", "circuit breaker"))+theme_classic()+theme(legend.title=element_blank())
+  scale_fill_manual(values=cols, breaks = c("[elim, elim]", "[mit, mit]", "[mit, circ]", "[circ, mit]", "[circ, circ]"))+theme_classic()
 
 theta <- 2
 stratMx2 = NULL
+# Pre-allocation
+max_elim2 = rep(max(u2vec)+yinc,length(u1vec))
+max_supp2 = max_elim2
+max_supp_circ2 = max_elim2
+max_circ_mit2 = max_circ_mit
+
 for(i in seq(1,length(u1vec))){
   u1 = u1vec[i]
+  if(i%%10==0){
+    print(u1)
+  }
   for(j in seq(1,length(u2vec))){
     u2 = u2vec[j]
     out <- ode(y = c(S=5000,I1=10,I2=1,C1=0,C2=0), parms = NULL, times = seq(0,T,1), func = SI, events = list(func = NULL, root = TRUE, terminalroot = 1), rootfun=rootfun, method = "radau")
     out<- data.frame(out)
-    if(max(out$I1)<=10 & max(out$time)<T & max(out$C1)<C1max & max(out$C2)<C2max){
-      outcome = "elimination"
-    } else if(max(out$I1)>10 & max(out$C1)<C1max & max(out$C2)>=C2max & max(out$time)<T){
-      outcome = "supp/circ"
-    } else if(max(out$I1)>10 & max(out$C1)>=C1max & max(out$C2)<C2max& max(out$time)<T){
-      outcome = "circ/supp"
-    } else if(max(out$I1)>10 & max(out$C1)<C1max & max(out$C2)<C2max& max(out$time)<T){
-      outcome = "suppression"
+    if(max(out$I1)>10 & max(out$C1)<=C1max & max(out$C2)>C2max & max(out$time)<T){
+      outcome = "[mit, circ]"
+      max_supp_circ2[i] = u2+yinc/2 
+    } else if(max(out$I1)>10 & max(out$C1)>C1max & max(out$C2)<=C2max& max(out$time)<T){
+      outcome = "[circ, mit]"
+    } else if(max(out$I1)>10 & max(out$C1)<=C1max & max(out$C2)<=C2max& max(out$time)<T){
+      outcome = "[mit, mit]"
+      max_supp2[i] = u2+yinc/2 
     } else if(max(out$time)==T){
       outcome = "no end"
-    } else if(max(out$I1)>10 & max(out$C1)>=C1max & max(out$C2)>=C2max& max(out$time)<T){
-      outcome = "circuit breaker"
+    } else if(max(out$I1)>10 & max(out$C1)>C1max & max(out$C2)>C2max& max(out$time)<T){
+      outcome = "[circ, circ]"
+      max_circ_mit2[i] = u2+yinc/2 
     }
-
-    stratMx2 = rbind(stratMx2, data.frame(u1 = u1, u2 = u2, outcome = outcome))
+    else if(max(out$I1)<=10 & max(out$time)<T & max(out$C1)<C1max & max(out$C2)<C2max){
+      outcome = "[elim, elim]"
+      max_elim2[i] = u2+yinc/2 
+    }
+    J = cumsum(beta*out$S*(out$I1+c*out$I2)*diff(c(0,out$time)))
+    stratMx2 = rbind(stratMx2, data.frame(u1 = u1, u2 = u2, strategy = outcome, J=J, T = max(out$time)))
   }}
 
-g2=ggplot(stratMx2, aes(u1, u2, fill= outcome)) +
-  geom_tile()+xlab("community daily max, u1max")+ylab("traveler daily max, u2max")+
+elim2 = data.frame(u1vec, max_elim2, max_supp2, max_supp_circ2)
+
+g2=ggplot() +
+  geom_raster(data = stratMx2,aes(x=u1, y=u2, fill= strategy),hjust = 1, vjust=1)+
+  geom_line(data=elim2,aes(x=u1vec+xinc,y=max_elim2),col="white")+
+  geom_line(data=elim2,aes(x=u1vec+xinc,y=max_supp2),col="white")+
+  geom_line(data=elim2,aes(x=u1vec+xinc,y=max_supp_circ2),col="white")+
+  geom_line(data=elim2,aes(x=u1vec+xinc,y=max_circ_mit2),col="white")+
+  xlab("community daily max, u1max")+ylab("traveler daily max, u2max")+
   ggtitle("High importations")+
-  scale_fill_manual(values=cols, breaks = c("elimination", "suppression", "supp/circ", "circ/supp", "circuit breaker"))+theme_classic()+theme(legend.title=element_blank())
+  scale_fill_manual(values=cols, breaks = c("[elim, elim]", "[mit, mit]", "[mit, circ]", "[circ, mit]", "[circ, circ]"))+theme_classic()
 
-g4 = ggplot(stratMx, aes(u1, u2, fill= T)) +
-  geom_tile()+xlab("community daily max, u2max")+ylab("traveler daily max, u2max")+
-  ggtitle("Time to end of outbreak (low importations)")+theme_classic()+theme(legend.title=element_blank())
+g3=ggplot() +
+  geom_raster(data = stratMx,aes(x=u1, y=u2, fill=T),hjust = 1, vjust=1)+
+  geom_line(data=elim,aes(x=u1vec+1.5*xinc,y=max_elim-2*yinc),col="white")+
+  geom_line(data=elim,aes(x=u1vec+xinc,y=max_supp),col="white")+
+  geom_line(data=elim,aes(x=u1vec+xinc,y=max_supp_circ),col="white")+
+  geom_line(data=elim,aes(x=u1vec+xinc,y=max_circ_mit),col="white")+
+  annotate("text", x = c(1.5, 0.5, .4, 0.05, 0.05), y = c(1.5,1.5,.1,1, 2.7), label = c("[elim, elim]","[circ,circ]", "[circ, mit]", "[mit, mit]", "[mit, circ]"),angle = c(0,0,0,90,90), col="black", size = 3)+
+  xlab("community daily max, u1max")+ylab("traveler daily max, u2max")+
+  ggtitle("Low importations")+scale_fill_gradient(low = cols[3], high = "black")+theme_classic()
 
-g5 = ggplot(stratMx, aes(u1, u2, fill= J)) +
-  geom_tile()+xlab("community daily max, u1max")+ylab("traveler daily max, u2max")+
-  scale_fill_gradient(low = "yellow", high = "red")+
-  ggtitle("Cases in outbreak (low importations)")+theme_classic()+theme(legend.title=element_blank())
 
+g4=ggplot() +
+  geom_raster(data = stratMx2,aes(x=u1, y=u2, fill=T),hjust = 1, vjust=1)+
+  geom_line(data=elim2,aes(x=u1vec+xinc,y=max_elim2),col="white")+
+  geom_line(data=elim2,aes(x=u1vec+xinc,y=max_supp2),col="white")+
+  geom_line(data=elim2,aes(x=u1vec+xinc,y=max_supp_circ2),col="white")+
+  geom_line(data=elim2,aes(x=u1vec+xinc,y=max_circ_mit2),col="white")+
+  xlab("community daily max, u1max")+ylab("traveler daily max, u2max")+
+  annotate("text", x = c(1.75, 1, 0.05, 0.05), y = c(2,2,0.2, 2), label = c("[elim, elim]","[circ,circ]", "[mit, mit]", "[mit, circ]"),angle = c(0,0,90,90), col=c("black", "white", "black", "black"), size = c(3,3,2,3))+
+  ggtitle("High importations")+scale_fill_gradient(low = cols[3], high = "black")+theme_classic()
 
-g3=ggarrange(g1,g2,common.legend = TRUE, legend="bottom")
-g6=g3/(g4+g5)+
-  plot_annotation(tag_levels = 'A')
+g5=ggplot() +
+  geom_raster(data = stratMx,aes(x=u1, y=u2, fill= J),hjust = 1, vjust=1)+
+  geom_line(data=elim,aes(x=u1vec+1.5*xinc,y=max_elim-2*yinc),col="white")+
+  geom_line(data=elim,aes(x=u1vec+xinc,y=max_supp),col="white")+
+  geom_line(data=elim,aes(x=u1vec+xinc,y=max_supp_circ),col="white")+
+  geom_line(data=elim,aes(x=u1vec+xinc,y=max_circ_mit),col="white")+
+  xlab("community daily max, u1max")+ylab("traveler daily max, u2max")+
+  annotate("text", x = c(1.5, 0.5, .4, 0.05, 0.05), y = c(1.5,1.5,.1,1, 2.7), label = c("[elim, elim]","[circ,circ]", "[circ, mit]", "[mit, mit]", "[mit, circ]"),angle = c(0,0,0,90,90), col=c("black", "white", "white", "white", "white"), size = 3)+
+  ggtitle("Low importations")+
+  scale_fill_gradient(low = cols[2], high = "black")+theme_classic()
 
-ggsave("~/Desktop/Work/Students/MSc/Adu-Boahen/Thesis_2024-Updates/Amys codes/figures/Heat_map.png", width = 30, height = 20, units = "cm")
+g6=ggplot() +
+  geom_raster(data = stratMx2,aes(x=u1, y=u2, fill= J),hjust = 1, vjust=1)+
+  geom_line(data=elim2,aes(x=u1vec+xinc,y=max_elim2),col="white")+
+  geom_line(data=elim2,aes(x=u1vec+xinc,y=max_supp2),col="white")+
+  geom_line(data=elim2,aes(x=u1vec+xinc,y=max_supp_circ2),col="white")+
+  geom_line(data=elim2,aes(x=u1vec+xinc,y=max_circ_mit2),col="white")+
+  xlab("community daily max, u1max")+ylab("traveler daily max, u2max")+
+  ggtitle("High importations")+
+  annotate("text", x = c(1.75, 1, 0.05, 0.05), y = c(2,2,0.2, 2), label = c("[elim, elim]","[circ,circ]", "[mit, mit]", "[mit, circ]"),angle = c(0,0,90,90), col=c("black", "white", "white", "white"), size = c(3,3,2,3))+
+  scale_fill_gradient(low = cols[2], high = "black")+theme_classic()
+
+g8=(g1+g2)+plot_annotation(tag_levels = 'A')
+
+ggsave("~/Desktop/Work/Students/MSc/Adu-Boahen/Thesis_2024-Updates/Amys codes/figures/strategy.png", width = 25, height = 10, units = "cm")
+
+g9 = (g3+g4)+plot_annotation(tag_levels = 'A')
+ggsave("~/Desktop/Work/Students/MSc/Adu-Boahen/Thesis_2024-Updates/Amys codes/figures/time.png", width = 25, height = 10, units = "cm")
+
+g10 = (g5+g6)+plot_annotation(tag_levels = 'A')
+ggsave("~/Desktop/Work/Students/MSc/Adu-Boahen/Thesis_2024-Updates/Amys codes/figures/cases.png", width = 25, height = 10, units = "cm")
